@@ -6,14 +6,14 @@
     <title>Your Cashier - Dashboard</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+    
     <style>
-        @keyframes slideIn {
-            from { transform: translateX(-100%); }
-            to { transform: translateX(0); }
-        }
-        
         .sidebar {
-            animation: slideIn 0.3s ease-out;
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
         
         .fade-in {
@@ -53,6 +53,14 @@
         .role-btn-inactive:hover {
             border-color: rgba(99, 102, 241, 0.5);
         }
+
+        .menu-item {
+            transition: all 0.2s ease;
+        }
+
+        .menu-item:hover {
+            transform: translateX(4px);
+        }
         
         @media print {
             body * {
@@ -77,13 +85,37 @@
         .pulse-animation {
             animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
         }
+
+        .sync-indicator {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 100;
+        }
     </style>
 </head>
 <body class="bg-gray-50">
-    <!-- Sidebar -->
-    <div id="sidebar" class="sidebar fixed left-0 top-0 h-full w-64 bg-gradient-to-b from-indigo-600 to-purple-700 text-white shadow-2xl z-50">
-        <div class="p-6 border-b border-white/20">
-            <div class="flex items-center gap-3">
+    <!-- Sync Indicator -->
+    <div class="sync-indicator" id="syncIndicator">
+        <div class="bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg flex items-center gap-2">
+            <svg class="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+            </svg>
+            <span class="text-sm font-medium">Syncing...</span>
+        </div>
+    </div>
+
+    <div id="sidebarOverlay" class="fixed inset-0 bg-black/50 z-40 hidden transition-opacity duration-300" onclick="closeSidebar()"></div>
+
+    <div id="sidebar" class="sidebar fixed left-0 top-0 h-full w-64 bg-gradient-to-b from-indigo-600 to-purple-700 text-white shadow-2xl z-50" style="transform: translateX(-100%);">
+        <div class="p-6 border-b border-white/20 relative">
+            <button onclick="closeSidebar()" type="button" class="absolute top-4 right-4 text-white/70 hover:text-white hover:bg-white/10 p-2 rounded-lg transition-all z-10">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+            </button>
+
+            <div class="flex items-center gap-3 pr-10">
                 <div class="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
                     <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
@@ -97,25 +129,25 @@
         </div>
 
         <nav class="p-4 space-y-2">
-            <button onclick="showSection('transaction')" class="menu-item w-full flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-white/10 transition-all" id="menu-transaction" type="button">
+            <button onclick="showSection('transaction')" class="menu-item w-full flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-white/10 transition-all bg-white/20" id="menu-transaction" type="button">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path>
                 </svg>
-                <span>Transaksi</span>
+                <span class="font-medium">Transaksi</span>
             </button>
 
             <button onclick="showSection('report')" class="menu-item w-full flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-white/10 transition-all" id="menu-report" type="button">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
                 </svg>
-                <span>Laporan Keuangan</span>
+                <span class="font-medium">Laporan Keuangan</span>
             </button>
 
             <button onclick="showSection('stock')" class="menu-item w-full flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-white/10 transition-all" id="menu-stock" type="button">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
                 </svg>
-                <span>Manajemen Stok</span>
+                <span class="font-medium">Manajemen Stok</span>
             </button>
 
             <button onclick="showSection('settings')" class="menu-item w-full flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-white/10 transition-all" id="menu-settings" type="button">
@@ -123,7 +155,7 @@
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
                 </svg>
-                <span>Pengaturan</span>
+                <span class="font-medium">Pengaturan</span>
             </button>
         </nav>
 
@@ -132,35 +164,44 @@
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
                 </svg>
-                <span>Logout</span>
+                <span class="font-medium">Logout</span>
             </button>
         </div>
     </div>
 
-    <div class="ml-64 min-h-screen">
-        <header class="bg-white shadow-sm sticky top-0 z-40">
-            <div class="px-8 py-4 flex items-center justify-between">
-                <div>
-                    <h2 class="text-2xl font-bold text-gray-800" id="pageTitle">Transaksi</h2>
-                    <p class="text-sm text-gray-500" id="pageSubtitle">Kelola transaksi penjualan</p>
-                </div>
+    <div id="mainContent" class="min-h-screen">
+        <header class="bg-white shadow-sm sticky top-0 z-30">
+            <div class="px-4 md:px-8 py-4 flex items-center justify-between">
                 <div class="flex items-center gap-4">
-                    <div class="text-right">
+                    <button onclick="openSidebar()" type="button" class="flex flex-col gap-1.5 p-2.5 rounded-lg hover:bg-indigo-50 transition-all">
+                        <div class="w-7 h-0.5 bg-gray-700 rounded-full"></div>
+                        <div class="w-7 h-0.5 bg-gray-700 rounded-full"></div>
+                        <div class="w-7 h-0.5 bg-gray-700 rounded-full"></div>
+                    </button>
+                    
+                    <div>
+                        <h2 class="text-xl md:text-2xl font-bold text-gray-800" id="pageTitle">Transaksi</h2>
+                        <p class="text-xs md:text-sm text-gray-500" id="pageSubtitle">Kelola transaksi penjualan</p>
+                    </div>
+                </div>
+                
+                <div class="flex items-center gap-4">
+                    <div class="text-right hidden md:block">
                         <p class="text-sm text-gray-600">Welcome back,</p>
                         <p class="font-semibold text-gray-800" id="usernameDisplay">Loading...</p>
                     </div>
-                    <div class="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full flex items-center justify-center text-white font-semibold">
+                    <div class="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full flex items-center justify-center text-white font-semibold shadow-lg">
                         <span id="userInitial">U</span>
                     </div>
                 </div>
             </div>
         </header>
 
-        <main class="p-8">
+        <main class="p-4 md:p-8">
             <div id="section-transaction" class="fade-in">
                 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
                     <div class="lg:col-span-2">
-                        <div class="bg-white rounded-2xl shadow-sm p-6">
+                        <div class="bg-white rounded-2xl shadow-sm p-6 border border-gray-100">
                             <h3 class="text-lg font-bold text-gray-800 mb-4">Input Transaksi</h3>
                             
                             <div class="space-y-4">
@@ -189,7 +230,7 @@
 
                             <div class="mt-6">
                                 <h4 class="font-semibold text-gray-800 mb-3">Keranjang Belanja</h4>
-                                <div id="cartItems" class="space-y-2">
+                                <div id="cartItems" class="space-y-2 max-h-96 overflow-y-auto">
                                     <p class="text-gray-400 text-center py-8">Keranjang masih kosong</p>
                                 </div>
                             </div>
@@ -226,7 +267,7 @@
                     </div>
 
                     <div class="lg:col-span-1">
-                        <div class="bg-white rounded-2xl shadow-sm p-6 sticky top-24">
+                        <div class="bg-white rounded-2xl shadow-sm p-6 sticky top-24 border border-gray-100">
                             <h3 class="text-lg font-bold text-gray-800 mb-4">Ringkasan</h3>
                             
                             <div class="space-y-3 mb-6">
@@ -241,11 +282,11 @@
                                 <div class="pt-3 border-t-2 border-gray-100">
                                     <div class="flex justify-between">
                                         <span class="font-bold text-gray-800">Total</span>
-                                        <span class="font-bold text-indigo-600 text-xl" id="cartTotal">Rp 0</span>
+                                        <span class="font-bold text-indigo-600 text-2xl" id="cartTotal">Rp 0</span>
                                     </div>
                                 </div>
                                 <div class="mt-3 pt-3 border-t border-gray-100">
-                                    <div class="flex items-center gap-2 text-sm">
+                                    <div class="flex items-center gap-2 text-sm bg-gray-50 rounded-lg p-3">
                                         <svg class="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"></path>
                                         </svg>
@@ -255,7 +296,7 @@
                             </div>
 
                             <div class="space-y-3">
-                                <button onclick="processTransaction()" type="button" class="btn-primary w-full py-3 rounded-lg text-white font-semibold hover:shadow-lg transition-all">
+                                <button onclick="processTransaction()" type="button" class="btn-primary w-full py-4 rounded-lg text-white font-semibold hover:shadow-xl transition-all">
                                     Proses Transaksi
                                 </button>
                                 <button onclick="clearCart()" type="button" class="w-full py-3 rounded-lg border-2 border-gray-200 text-gray-700 font-semibold hover:bg-gray-50 transition-all">
@@ -307,7 +348,7 @@
 
             <div id="section-report" class="fade-in hidden">
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
-                    <div class="bg-white rounded-2xl shadow-sm p-6">
+                    <div class="bg-white rounded-2xl shadow-sm p-6 border border-gray-100">
                         <div class="flex items-center justify-between mb-2">
                             <span class="text-sm text-gray-600">Total Pendapatan</span>
                             <svg class="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -318,7 +359,7 @@
                         <p class="text-xs text-gray-500 mt-1">Total semua transaksi</p>
                     </div>
 
-                    <div class="bg-white rounded-2xl shadow-sm p-6">
+                    <div class="bg-white rounded-2xl shadow-sm p-6 border border-gray-100">
                         <div class="flex items-center justify-between mb-2">
                             <span class="text-sm text-gray-600">Total Cash</span>
                             <svg class="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -329,7 +370,7 @@
                         <p class="text-xs text-gray-500 mt-1">Pembayaran tunai</p>
                     </div>
 
-                    <div class="bg-white rounded-2xl shadow-sm p-6">
+                    <div class="bg-white rounded-2xl shadow-sm p-6 border border-gray-100">
                         <div class="flex items-center justify-between mb-2">
                             <span class="text-sm text-gray-600">Total QRIS</span>
                             <svg class="w-5 h-5 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -340,7 +381,7 @@
                         <p class="text-xs text-gray-500 mt-1">Pembayaran QRIS</p>
                     </div>
 
-                    <div class="bg-white rounded-2xl shadow-sm p-6">
+                    <div class="bg-white rounded-2xl shadow-sm p-6 border border-gray-100">
                         <div class="flex items-center justify-between mb-2">
                             <span class="text-sm text-gray-600">Total Keuntungan</span>
                             <svg class="w-5 h-5 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -351,7 +392,7 @@
                         <p class="text-xs text-gray-500 mt-1">Keuntungan bersih</p>
                     </div>
 
-                    <div class="bg-white rounded-2xl shadow-sm p-6">
+                    <div class="bg-white rounded-2xl shadow-sm p-6 border border-gray-100">
                         <div class="flex items-center justify-between mb-2">
                             <span class="text-sm text-gray-600">Rata-rata/Transaksi</span>
                             <svg class="w-5 h-5 text-pink-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -363,25 +404,38 @@
                     </div>
                 </div>
 
-                <div class="bg-white rounded-2xl shadow-sm p-6 mb-8">
+                <div class="bg-white rounded-2xl shadow-sm p-6 mb-8 border border-gray-100">
                     <h3 class="text-lg font-bold text-gray-800 mb-4">Grafik Penjualan 7 Hari Terakhir</h3>
                     <canvas id="salesChart" height="80"></canvas>
                 </div>
 
-                <div class="bg-white rounded-2xl shadow-sm p-6">
-                    <div class="flex items-center justify-between mb-6">
+                <div class="bg-white rounded-2xl shadow-sm p-6 border border-gray-100">
+                    <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-6">
                         <h3 class="text-lg font-bold text-gray-800">Riwayat Transaksi</h3>
-                        <div class="flex gap-2">
+                        <div class="flex gap-2 flex-wrap">
                             <button onclick="filterTransactions('today')" type="button" class="px-4 py-2 rounded-lg border-2 border-gray-200 text-sm font-medium hover:border-indigo-500 transition-all">Hari Ini</button>
                             <button onclick="filterTransactions('week')" type="button" class="px-4 py-2 rounded-lg border-2 border-gray-200 text-sm font-medium hover:border-indigo-500 transition-all">Minggu Ini</button>
                             <button onclick="filterTransactions('month')" type="button" class="px-4 py-2 rounded-lg border-2 border-gray-200 text-sm font-medium hover:border-indigo-500 transition-all">Bulan Ini</button>
+                            
+                            <button onclick="exportToCSV()" type="button" class="px-4 py-2 rounded-lg bg-green-500 hover:bg-green-600 text-white text-sm font-medium transition-all shadow-md flex items-center gap-2">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                </svg>
+                                CSV
+                            </button>
+                            <button onclick="exportToExcel()" type="button" class="px-4 py-2 rounded-lg bg-blue-500 hover:bg-blue-600 text-white text-sm font-medium transition-all shadow-md flex items-center gap-2">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
+                                </svg>
+                                Excel
+                            </button>
                         </div>
                     </div>
 
                     <div class="overflow-x-auto">
                         <table class="w-full">
                             <thead>
-                                <tr class="border-b-2 border-gray-100">
+                                <tr class="border-b-2 border-gray-100 bg-gray-50">
                                     <th class="text-left py-3 px-4 text-sm font-semibold text-gray-700">ID</th>
                                     <th class="text-left py-3 px-4 text-sm font-semibold text-gray-700">Tanggal</th>
                                     <th class="text-left py-3 px-4 text-sm font-semibold text-gray-700">Items</th>
@@ -414,7 +468,7 @@
 
                 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
                     <div class="lg:col-span-1">
-                        <div class="bg-white rounded-2xl shadow-sm p-6">
+                        <div class="bg-white rounded-2xl shadow-sm p-6 border border-gray-100">
                             <h3 class="text-lg font-bold text-gray-800 mb-4">Tambah Stok Barang</h3>
                             
                             <form onsubmit="addStock(event)" class="space-y-4">
@@ -458,12 +512,28 @@
                     </div>
 
                     <div class="lg:col-span-2">
-                        <div class="bg-white rounded-2xl shadow-sm p-6">
-                            <h3 class="text-lg font-bold text-gray-800 mb-4">Daftar Stok Barang</h3>
+                        <div class="bg-white rounded-2xl shadow-sm p-6 border border-gray-100">
+                            <div class="flex items-center justify-between mb-4">
+                                <h3 class="text-lg font-bold text-gray-800">Daftar Stok Barang</h3>
+                                
+                                <div class="relative">
+                                    <input 
+                                        type="text" 
+                                        id="searchStock" 
+                                        placeholder="Cari stok..." 
+                                        oninput="searchStocks()"
+                                        class="pl-10 pr-4 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-indigo-500 text-sm"
+                                    >
+                                    <svg class="w-5 h-5 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                                    </svg>
+                                </div>
+                            </div>
+
                             <div class="overflow-x-auto">
                                 <table class="w-full">
                                     <thead>
-                                        <tr class="border-b-2 border-gray-100">
+                                        <tr class="border-b-2 border-gray-100 bg-gray-50">
                                             <th class="text-left py-3 px-4 text-sm font-semibold text-gray-700">Nama</th>
                                             <th class="text-left py-3 px-4 text-sm font-semibold text-gray-700">Kategori</th>
                                             <th class="text-left py-3 px-4 text-sm font-semibold text-gray-700">Stok</th>
@@ -484,7 +554,7 @@
 
             <div id="section-settings" class="fade-in hidden">
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div class="bg-white rounded-2xl shadow-sm p-6">
+                    <div class="bg-white rounded-2xl shadow-sm p-6 border border-gray-100">
                         <h3 class="text-lg font-bold text-gray-800 mb-4">Informasi Toko</h3>
                         <div class="space-y-4">
                             <div>
@@ -505,7 +575,7 @@
                         </div>
                     </div>
 
-                    <div class="bg-white rounded-2xl shadow-sm p-6">
+                    <div class="bg-white rounded-2xl shadow-sm p-6 border border-gray-100">
                         <h3 class="text-lg font-bold text-gray-800 mb-4">Ganti Password</h3>
                         <div class="space-y-4">
                             <div>
@@ -543,9 +613,8 @@
                 <h3 class="text-2xl font-bold text-gray-800">Pembayaran QRIS</h3>
                 <p class="text-sm text-gray-600">Scan QR Code untuk melakukan pembayaran</p>
 
-                <!-- QRIS Image - Foto Asli dari Upload -->
                 <div class="bg-white rounded-xl p-2 border-2 border-gray-200 shadow-lg">
-                    <img src="https://placehold.co/600x750" alt="QRIS payment barcode for Masjid Sejuta Pemuda with NMID ID1024349600402 AO1 featuring red geometric design and black QR code with text satu QRIS untuk semua and website www.aspi-qris.id" class="max-w-full h-auto mx-auto rounded-lg">
+                    <img src="https://placehold.co/600x900" alt="QRIS payment barcode for KURJD Transportasi with NMID ID102541527206 A01 featuring red geometric design GPN logo black QR code Indonesian flag colors text satu QRIS untuk semua website www.aspi-qris.id dicetak oleh 93600914 versi cetak V0.0.2025.06.30" class="max-w-full h-auto mx-auto rounded-lg">
                 </div>
 
                 <div class="bg-gray-50 rounded-lg p-4 space-y-2 text-left">
@@ -559,11 +628,11 @@
                     </div>
                     <div class="flex justify-between text-sm">
                         <span class="text-gray-600">NMID:</span>
-                        <span class="font-mono text-xs text-gray-800">ID1024349600402</span>
+                        <span class="font-mono text-xs text-gray-800">ID102541527206</span>
                     </div>
                     <div class="flex justify-between text-sm">
                         <span class="text-gray-600">Merchant:</span>
-                        <span class="font-medium text-xs text-gray-800">Masjid Sejuta Pemuda</span>
+                        <span class="font-medium text-xs text-gray-800">KURJD, TRANSPORTASI</span>
                     </div>
                 </div>
 
@@ -576,28 +645,18 @@
                     </div>
                 </div>
 
-                <div class="bg-indigo-50 border border-indigo-200 rounded-lg p-3">
-                    <p class="text-xs text-indigo-700 text-center">
-                        💡 Tekan <kbd class="px-2 py-1 bg-white rounded border border-indigo-300 font-mono text-xs">ESC</kbd> atau klik di luar untuk membatalkan
-                    </p>
-                    <p class="text-xs text-indigo-600 text-center mt-1">
-                        ⚡ Klik "Konfirmasi Pembayaran" setelah customer scan QR
-                    </p>
-                </div>
-
                 <div class="flex gap-3 pt-4">
                     <button onclick="confirmQrisPayment()" type="button" class="flex-1 btn-primary py-3 rounded-lg text-white font-semibold hover:shadow-lg transition-all">
-                        ✓ Konfirmasi Pembayaran
+                        Konfirmasi Pembayaran
                     </button>
                     <button onclick="cancelQrisPayment()" type="button" class="flex-1 py-3 rounded-lg border-2 border-gray-200 text-gray-700 font-semibold hover:bg-gray-50 transition-all">
-                        ✕ Batal
+                        Batal
                     </button>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Receipt Modal -->
     <div id="receiptModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 hidden">
         <div class="bg-white rounded-2xl p-8 max-w-md w-full mx-4">
             <div class="print-receipt" id="receiptContent"></div>
@@ -613,16 +672,84 @@
     </div>
 
     <script>
+        // Firebase Configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyCYYvekxHtOuCzwJ6TYcjBuodoJJ09YW3E",
+            authDomain: "simnihbos.firebaseapp.com",
+            databaseURL: "https://simnihbos-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "simnihbos",
+            storageBucket: "simnihbos.firebasestorage.app",
+            messagingSenderId: "637893179915",
+            appId: "1:637893179915:web:4c8b94c41eb8e789e8650e",
+            measurementId: "G-B9PZVLVRLF"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+
         let userRole = localStorage.getItem('userRole') || 'owner';
         let username = localStorage.getItem('username') || 'User';
         let cart = [];
         let selectedPaymentMethod = 'cash';
         let currentTransaction = null;
-        let stocks = JSON.parse(localStorage.getItem('stocks')) || [];
-        let transactions = JSON.parse(localStorage.getItem('transactions')) || [];
+        let stocks = [];
+        let transactions = [];
+
+        function showSyncIndicator(show = true) {
+            const indicator = document.getElementById('syncIndicator');
+            if (show) {
+                indicator.style.display = 'block';
+                setTimeout(() => {
+                    indicator.style.display = 'none';
+                }, 2000);
+            } else {
+                indicator.style.display = 'none';
+            }
+        }
+
+        // LOAD DATA FROM FIREBASE
+        function loadDataFromFirebase() {
+            showSyncIndicator();
+            
+            // Load Stocks
+            database.ref('stocks').on('value', (snapshot) => {
+                stocks = [];
+                if (snapshot.exists()) {
+                    snapshot.forEach((childSnapshot) => {
+                        stocks.push(childSnapshot.val());
+                    });
+                }
+                loadProducts();
+                loadStocks();
+                checkLowStock();
+            });
+
+            // Load Transactions
+            database.ref('transactions').on('value', (snapshot) => {
+                transactions = [];
+                if (snapshot.exists()) {
+                    snapshot.forEach((childSnapshot) => {
+                        transactions.push(childSnapshot.val());
+                    });
+                }
+                loadTransactions();
+                updateStats();
+            });
+        }
+
+        function openSidebar() {
+            document.getElementById('sidebar').style.transform = 'translateX(0)';
+            document.getElementById('sidebarOverlay').classList.remove('hidden');
+        }
+
+        function closeSidebar() {
+            document.getElementById('sidebar').style.transform = 'translateX(-100%)';
+            document.getElementById('sidebarOverlay').classList.add('hidden');
+        }
 
         document.addEventListener('keydown', function(e) {
-            if (e.key === 'Escape' || e.keyCode === 27) {
+            if (e.key === 'Escape') {
                 const qrisModal = document.getElementById('qrisModal');
                 const receiptModal = document.getElementById('receiptModal');
                 
@@ -630,6 +757,8 @@
                     cancelQrisPayment();
                 } else if (!receiptModal.classList.contains('hidden')) {
                     closeReceiptModal();
+                } else if (document.getElementById('sidebar').style.transform === 'translateX(0px)') {
+                    closeSidebar();
                 }
             }
         });
@@ -639,7 +768,9 @@
                 window.location.href = 'login.html';
                 return;
             }
+            
             initializeApp();
+            loadDataFromFirebase(); // Load from Firebase
         });
 
         function initializeApp() {
@@ -648,11 +779,6 @@
             document.getElementById('userRoleDisplay').textContent = userRole === 'owner' ? 'Owner - Full Access' : 'Staff - Limited Access';
 
             applyRoleRestrictions();
-            loadProducts();
-            loadStocks();
-            loadTransactions();
-            updateStats();
-            checkLowStock();
             showSection('transaction');
         }
 
@@ -727,16 +853,19 @@
                 }
             });
 
-            select.addEventListener('change', function() {
-                const index = this.value;
-                if (index !== '') {
-                    const stock = stocks[index];
-                    document.getElementById('productPrice').value = 'Rp ' + formatNumber(stock.sellPrice);
-                    document.getElementById('productQuantity').max = stock.quantity;
-                } else {
-                    document.getElementById('productPrice').value = '';
-                }
-            });
+            const existingListener = select.onchange;
+            if (!existingListener) {
+                select.addEventListener('change', function() {
+                    const index = this.value;
+                    if (index !== '') {
+                        const stock = stocks[index];
+                        document.getElementById('productPrice').value = 'Rp ' + formatNumber(stock.sellPrice);
+                        document.getElementById('productQuantity').max = stock.quantity;
+                    } else {
+                        document.getElementById('productPrice').value = '';
+                    }
+                });
+            }
         }
 
         function addToCart() {
@@ -764,7 +893,8 @@
                     name: stock.name,
                     price: stock.sellPrice,
                     costPrice: stock.costPrice,
-                    quantity: quantity
+                    quantity: quantity,
+                    stockId: stock.id
                 });
             }
 
@@ -887,26 +1017,24 @@
         }
 
         function completeTransaction(transaction) {
+            showSyncIndicator();
+            
+            // Update stocks in Firebase
             transaction.items.forEach(item => {
-                const stock = stocks[item.stockIndex];
-                stock.quantity -= item.quantity;
+                const stockId = item.stockId;
+                const stock = stocks.find(s => s.id === stockId);
+                if (stock) {
+                    const newQuantity = stock.quantity - item.quantity;
+                    database.ref('stocks/' + stockId + '/quantity').set(newQuantity);
+                }
             });
 
-            transactions.push(transaction);
-
-            localStorage.setItem('stocks', JSON.stringify(stocks));
-            localStorage.setItem('transactions', JSON.stringify(transactions));
+            // Save transaction to Firebase
+            database.ref('transactions/' + transaction.id).set(transaction);
 
             generateReceipt(transaction);
-
             clearCart();
             selectPaymentMethod('cash');
-            loadProducts();
-            loadStocks();
-            loadTransactions();
-            updateStats();
-            checkLowStock();
-
             document.getElementById('receiptModal').classList.remove('hidden');
         }
 
@@ -947,7 +1075,7 @@
                 </div>
                 <div class="text-center text-sm text-gray-600">
                     <p>Terima kasih atas kunjungan Anda!</p>
-                    <p>Barang yang sudah dibeli tidak dapat dikembalikan</p>
+                    <p>Barang yang sudah dibeli tidak dapat dikembalkan</p>
                 </div>
             `;
         }
@@ -960,6 +1088,7 @@
             document.getElementById('receiptModal').classList.add('hidden');
         }
 
+        // SAVE STOCK TO FIREBASE
         function addStock(event) {
             event.preventDefault();
 
@@ -976,6 +1105,7 @@
             }
 
             const stock = {
+                id: Date.now(),
                 name,
                 category,
                 quantity,
@@ -985,16 +1115,17 @@
                 addedDate: new Date().toISOString()
             };
 
-            stocks.push(stock);
-            localStorage.setItem('stocks', JSON.stringify(stocks));
-
-            event.target.reset();
-
-            loadProducts();
-            loadStocks();
-            checkLowStock();
-
-            alert('Stok berhasil ditambahkan!');
+            showSyncIndicator();
+            
+            // SAVE TO FIREBASE
+            database.ref('stocks/' + stock.id).set(stock)
+                .then(() => {
+                    event.target.reset();
+                    alert('Stok berhasil ditambahkan dan disinkronkan ke cloud!');
+                })
+                .catch((error) => {
+                    alert('Error: ' + error.message);
+                });
         }
 
         function loadStocks() {
@@ -1007,12 +1138,12 @@
             }
 
             let html = '';
-            stocks.forEach((stock, index) => {
+            stocks.forEach((stock) => {
                 const statusClass = stock.quantity < 10 ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800';
                 const statusText = stock.quantity < 10 ? 'Stok Menipis' : 'Stok Aman';
 
                 html += `
-                    <tr class="border-b border-gray-100 hover:bg-gray-50">
+                    <tr class="border-b border-gray-100 hover:bg-gray-50 stock-row" data-name="${stock.name.toLowerCase()}" data-category="${stock.category.toLowerCase()}">
                         <td class="py-3 px-4">${stock.name}</td>
                         <td class="py-3 px-4">${stock.category}</td>
                         <td class="py-3 px-4 font-semibold">${stock.quantity}</td>
@@ -1028,6 +1159,22 @@
             });
 
             stockList.innerHTML = html;
+        }
+
+        function searchStocks() {
+            const searchValue = document.getElementById('searchStock').value.toLowerCase();
+            const rows = document.querySelectorAll('.stock-row');
+            
+            rows.forEach(row => {
+                const name = row.getAttribute('data-name');
+                const category = row.getAttribute('data-category');
+                
+                if (name.includes(searchValue) || category.includes(searchValue)) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            });
         }
 
         function checkLowStock() {
@@ -1085,6 +1232,92 @@
         function viewTransactionDetail(transaction) {
             generateReceipt(transaction);
             document.getElementById('receiptModal').classList.remove('hidden');
+        }
+
+        function exportToCSV() {
+            if (transactions.length === 0) {
+                alert('Tidak ada data untuk di-export!');
+                return;
+            }
+
+            let csv = 'ID Transaksi,Tanggal,Jumlah Item,Metode Pembayaran,Total,Keuntungan,Kasir\n';
+            
+            transactions.forEach(t => {
+                const date = formatDate(t.date);
+                const method = t.paymentMethod || 'cash';
+                csv += `${t.id},"${date}",${t.items.length},${method.toUpperCase()},${t.total},${t.profit},${t.user}\n`;
+            });
+
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `laporan-transaksi-${new Date().toISOString().split('T')[0]}.csv`;
+            a.click();
+            window.URL.revokeObjectURL(url);
+            
+            alert('Data berhasil di-export ke CSV!');
+        }
+
+        function exportToExcel() {
+            if (transactions.length === 0) {
+                alert('Tidak ada data untuk di-export!');
+                return;
+            }
+
+            let html = `
+                <html>
+                <head>
+                    <meta charset="UTF-8">
+                    <style>
+                        table { border-collapse: collapse; width: 100%; }
+                        th, td { border: 1px solid black; padding: 8px; text-align: left; }
+                        th { background-color: #f3f4f6; font-weight: bold; }
+                    </style>
+                </head>
+                <body>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>ID Transaksi</th>
+                                <th>Tanggal</th>
+                                <th>Jumlah Item</th>
+                                <th>Metode</th>
+                                <th>Total</th>
+                                <th>Keuntungan</th>
+                                <th>Kasir</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+            `;
+            
+            transactions.forEach(t => {
+                const date = formatDate(t.date);
+                const method = t.paymentMethod || 'cash';
+                html += `
+                    <tr>
+                        <td>${t.id}</td>
+                        <td>${date}</td>
+                        <td>${t.items.length}</td>
+                        <td>${method.toUpperCase()}</td>
+                        <td>Rp ${formatNumber(t.total)}</td>
+                        <td>Rp ${formatNumber(t.profit)}</td>
+                        <td>${t.user}</td>
+                    </tr>
+                `;
+            });
+            
+            html += '</tbody></table></body></html>';
+
+            const blob = new Blob([html], { type: 'application/vnd.ms-excel' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `laporan-transaksi-${new Date().toISOString().split('T')[0]}.xls`;
+            a.click();
+            window.URL.revokeObjectURL(url);
+            
+            alert('Data berhasil di-export ke Excel!');
         }
 
         function updateStats() {
@@ -1209,10 +1442,21 @@
         }
 
         function saveStoreSettings() {
-            localStorage.setItem('storeName', document.getElementById('storeName').value);
-            localStorage.setItem('storeAddress', document.getElementById('storeAddress').value);
-            localStorage.setItem('storePhone', document.getElementById('storePhone').value);
-            alert('Pengaturan berhasil disimpan!');
+            const settings = {
+                storeName: document.getElementById('storeName').value,
+                storeAddress: document.getElementById('storeAddress').value,
+                storePhone: document.getElementById('storePhone').value
+            };
+
+            showSyncIndicator();
+            
+            database.ref('settings').set(settings)
+                .then(() => {
+                    alert('Pengaturan berhasil disimpan dan disinkronkan!');
+                })
+                .catch((error) => {
+                    alert('Error: ' + error.message);
+                });
         }
 
         function changePassword() {
