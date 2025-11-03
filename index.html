@@ -251,7 +251,7 @@
                                     <span id="loginBtnText">Sign In as Owner</span>
                                 </button>
                             </form>
-
+                        </div>
 
                         <!-- Gmail Tab -->
                         <div id="gmailContent" class="space-y-4 hidden">
@@ -291,9 +291,11 @@
                                 </div>
                             </div>
 
-                            <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
-                                <p class="text-xs text-yellow-800">
-                                    <strong>Setup Required:</strong> Enable Google Sign-In di Firebase Console → Authentication → Sign-in method
+                            <!-- Troubleshooting Info -->
+                            <div class="bg-red-50 border border-red-200 rounded-lg p-3">
+                                <p class="text-xs text-red-800 font-semibold mb-1">⚠️ Google Login Error?</p>
+                                <p class="text-xs text-red-700">
+                                    Tambahkan domain <code class="bg-white px-1 rounded">meindraganteng.github.io</code> ke Firebase Console → Authentication → Settings → Authorized domains
                                 </p>
                             </div>
                         </div>
@@ -329,13 +331,13 @@
         let selectedRole = 'owner';
         let showPassword = false;
 
-        // Initialize DEFAULT ACCOUNTS (5 accounts total)
+        // Initialize DEFAULT ACCOUNTS
         function initializeDefaultAccounts() {
             const defaultAccounts = {
                 'kelompok1': {
                     username: 'kelompok1',
                     password: 'kelompok1josjis',
-                    name: 'Kelompok 1',
+                    name: 'Kelompok1',
                     role: 'owner',
                     createdAt: new Date().toISOString()
                 },
@@ -369,13 +371,11 @@
                 }
             };
 
-            // Save to Firebase if not exists
             Object.keys(defaultAccounts).forEach(key => {
                 database.ref('users/' + key).once('value')
                     .then((snapshot) => {
                         if (!snapshot.exists()) {
                             database.ref('users/' + key).set(defaultAccounts[key]);
-                            console.log('Created default account:', key);
                         }
                     });
             });
@@ -516,49 +516,53 @@
                 prompt: 'select_account'
             });
             
+            // Try popup first
             auth.signInWithPopup(provider)
                 .then((result) => {
-                    const user = result.user;
-                    const username = user.email.split('@')[0].replace(/[^a-zA-Z0-9]/g, '_');
-                    
-                    const googleUser = {
-                        username: username,
-                        email: user.email,
-                        name: user.displayName || username,
-                        role: selectedRole,
-                        photoURL: user.photoURL,
-                        createdAt: new Date().toISOString(),
-                        loginMethod: 'google',
-                        uid: user.uid
-                    };
-
-                    database.ref('users/' + username).set(googleUser)
-                        .then(() => {
-                            localStorage.setItem('isAuthenticated', 'true');
-                            localStorage.setItem('userRole', selectedRole);
-                            localStorage.setItem('username', user.displayName || username);
-                            
-                            window.location.replace('dashboard-owner.html');
-                        });
+                    handleGoogleLoginSuccess(result);
                 })
                 .catch((error) => {
-                    console.error('Google Login Error:', error);
+                    console.error('Popup Error:', error);
                     
-                    let errorMessage = 'Google login gagal!\n\n';
-                    if (error.code === 'auth/popup-blocked') {
-                        errorMessage += 'Popup diblokir browser. Silakan:\n1. Klik icon 🔒 di address bar\n2. Izinkan popup untuk site ini\n3. Coba lagi';
-                    } else if (error.code === 'auth/popup-closed-by-user') {
-                        errorMessage += 'Popup ditutup. Silakan coba lagi.';
-                    } else if (error.code === 'auth/unauthorized-domain') {
-                        errorMessage += 'Domain tidak diizinkan.\nTambahkan domain di Firebase Console → Authentication → Settings → Authorized domains';
+                    // If popup failed, try redirect (fallback)
+                    if (error.code === 'auth/popup-blocked' || error.code === 'auth/unauthorized-domain') {
+                        alert('Popup diblokir atau domain tidak authorized.\n\nSilakan:\n1. Tambahkan domain "meindraganteng.github.io" ke Firebase Console\n2. Atau gunakan login via Account');
+                        googleBtn.disabled = false;
+                        googleBtnText.textContent = 'Continue with Google';
+                    } else if (error.code !== 'auth/popup-closed-by-user') {
+                        alert('Google login error: ' + error.message);
+                        googleBtn.disabled = false;
+                        googleBtnText.textContent = 'Continue with Google';
                     } else {
-                        errorMessage += error.message;
+                        googleBtn.disabled = false;
+                        googleBtnText.textContent = 'Continue with Google';
                     }
-                    
-                    alert(errorMessage);
-                    googleBtn.disabled = false;
-                    googleBtnText.textContent = 'Continue with Google';
                 });
+        }
+
+        function handleGoogleLoginSuccess(result) {
+            const user = result.user;
+            const username = user.email.split('@')[0].replace(/[^a-zA-Z0-9]/g, '_');
+            
+            const googleUser = {
+                username: username,
+                email: user.email,
+                name: user.displayName || username,
+                role: selectedRole,
+                photoURL: user.photoURL,
+                createdAt: new Date().toISOString(),
+                loginMethod: 'google',
+                uid: user.uid
+            };
+
+            database.ref('users/' + username).set(googleUser)
+                .then(() => {
+                    localStorage.setItem('isAuthenticated', 'true');
+                    localStorage.setItem('userRole', selectedRole);
+                    localStorage.setItem('username', user.displayName || username);
+                    
+                    window.location.replace('dashboard-owner.html');
+                })
         }
     </script>
 </body>
