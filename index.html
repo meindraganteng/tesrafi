@@ -152,7 +152,7 @@
                         </div>
                     </div>
 
-                    <!-- Login Tabs -->
+                    <!-- Tabs -->
                     <div>
                         <div class="bg-gray-100 p-1 rounded-lg grid grid-cols-2 gap-1 mb-4">
                             <button 
@@ -251,7 +251,7 @@
                                     <span id="loginBtnText">Sign In as Owner</span>
                                 </button>
                             </form>
-                        </div>
+
 
                         <!-- Gmail Tab -->
                         <div id="gmailContent" class="space-y-4 hidden">
@@ -290,6 +290,12 @@
                                     <span id="roleText" class="font-medium text-gray-900">Owner - Full System Access</span>
                                 </div>
                             </div>
+
+                            <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                                <p class="text-xs text-yellow-800">
+                                    <strong>Setup Required:</strong> Enable Google Sign-In di Firebase Console → Authentication → Sign-in method
+                                </p>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -305,7 +311,6 @@
     </div>
 
     <script>
-        // Firebase Configuration
         const firebaseConfig = {
             apiKey: "AIzaSyCYYvekxHtOuCzwJ6TYcjBuodoJJ09YW3E",
             authDomain: "simnihbos.firebaseapp.com",
@@ -323,6 +328,62 @@
 
         let selectedRole = 'owner';
         let showPassword = false;
+
+        // Initialize DEFAULT ACCOUNTS (5 accounts total)
+        function initializeDefaultAccounts() {
+            const defaultAccounts = {
+                'kelompok1': {
+                    username: 'kelompok1',
+                    password: 'kelompok1josjis',
+                    name: 'Kelompok 1',
+                    role: 'owner',
+                    createdAt: new Date().toISOString()
+                },
+                'admin': {
+                    username: 'admin',
+                    password: 'admin123',
+                    name: 'Administrator',
+                    role: 'owner',
+                    createdAt: new Date().toISOString()
+                },
+                'staff': {
+                    username: 'staff',
+                    password: 'staff123',
+                    name: 'Staff',
+                    role: 'staff',
+                    createdAt: new Date().toISOString()
+                },
+                'mankeub': {
+                    username: 'mankeub',
+                    password: 'keuangan123',
+                    name: 'Man Keu B',
+                    role: 'staff',
+                    createdAt: new Date().toISOString()
+                },
+                'kasir2': {
+                    username: 'kasir2',
+                    password: 'kasir456',
+                    name: 'Kasir 2',
+                    role: 'staff',
+                    createdAt: new Date().toISOString()
+                }
+            };
+
+            // Save to Firebase if not exists
+            Object.keys(defaultAccounts).forEach(key => {
+                database.ref('users/' + key).once('value')
+                    .then((snapshot) => {
+                        if (!snapshot.exists()) {
+                            database.ref('users/' + key).set(defaultAccounts[key]);
+                            console.log('Created default account:', key);
+                        }
+                    });
+            });
+        }
+
+        window.addEventListener('load', function() {
+            initializeDefaultAccounts();
+        });
 
         function selectRole(role) {
             selectedRole = role;
@@ -408,7 +469,6 @@
             loginBtn.disabled = true;
             loginBtnText.innerHTML = '<svg class="animate-spin h-5 w-5 mr-2 inline" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>Signing in...';
 
-            // Check user in Firebase
             database.ref('users/' + username).once('value')
                 .then((snapshot) => {
                     if (snapshot.exists()) {
@@ -419,7 +479,7 @@
                             localStorage.setItem('userRole', user.role);
                             localStorage.setItem('username', user.name);
                             
-                            window.location.replace('dashboard.html');
+                            window.location.replace('dashboard-owner.html');
                         } else if (user.password !== password) {
                             passwordError.textContent = 'Incorrect password';
                             passwordError.classList.remove('hidden');
@@ -452,34 +512,50 @@
             googleBtnText.textContent = 'Connecting to Google...';
 
             const provider = new firebase.auth.GoogleAuthProvider();
+            provider.setCustomParameters({
+                prompt: 'select_account'
+            });
             
             auth.signInWithPopup(provider)
                 .then((result) => {
                     const user = result.user;
+                    const username = user.email.split('@')[0].replace(/[^a-zA-Z0-9]/g, '_');
                     
-                    // Save Google user to Firebase database
                     const googleUser = {
-                        username: user.email.split('@')[0],
+                        username: username,
                         email: user.email,
-                        name: user.displayName,
+                        name: user.displayName || username,
                         role: selectedRole,
                         photoURL: user.photoURL,
                         createdAt: new Date().toISOString(),
-                        loginMethod: 'google'
+                        loginMethod: 'google',
+                        uid: user.uid
                     };
 
-                    database.ref('users/' + googleUser.username).set(googleUser)
+                    database.ref('users/' + username).set(googleUser)
                         .then(() => {
                             localStorage.setItem('isAuthenticated', 'true');
                             localStorage.setItem('userRole', selectedRole);
-                            localStorage.setItem('username', user.displayName);
+                            localStorage.setItem('username', user.displayName || username);
                             
                             window.location.replace('dashboard-owner.html');
                         });
                 })
                 .catch((error) => {
                     console.error('Google Login Error:', error);
-                    alert('Google login failed: ' + error.message);
+                    
+                    let errorMessage = 'Google login gagal!\n\n';
+                    if (error.code === 'auth/popup-blocked') {
+                        errorMessage += 'Popup diblokir browser. Silakan:\n1. Klik icon 🔒 di address bar\n2. Izinkan popup untuk site ini\n3. Coba lagi';
+                    } else if (error.code === 'auth/popup-closed-by-user') {
+                        errorMessage += 'Popup ditutup. Silakan coba lagi.';
+                    } else if (error.code === 'auth/unauthorized-domain') {
+                        errorMessage += 'Domain tidak diizinkan.\nTambahkan domain di Firebase Console → Authentication → Settings → Authorized domains';
+                    } else {
+                        errorMessage += error.message;
+                    }
+                    
+                    alert(errorMessage);
                     googleBtn.disabled = false;
                     googleBtnText.textContent = 'Continue with Google';
                 });
