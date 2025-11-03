@@ -5,6 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Your Cashier - Login</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+    
     <style>
         @keyframes pulse {
             0%, 100% { opacity: 1; }
@@ -91,20 +97,15 @@
     </style>
 </head>
 <body class="gradient-bg min-h-screen">
-    <!-- Background Decoration -->
     <div class="fixed inset-0 overflow-hidden pointer-events-none">
         <div class="absolute top-20 left-10 w-72 h-72 bg-indigo-300 opacity-20 rounded-full blur-circle"></div>
         <div class="absolute bottom-20 right-10 w-96 h-96 bg-purple-300 opacity-20 rounded-full blur-circle"></div>
     </div>
 
-    <!-- Main Container -->
     <div class="min-h-screen flex items-center justify-center p-4 relative z-10 animate-fadeIn">
         <div class="w-full max-w-md">
-            <!-- Card -->
             <div class="bg-white/95 backdrop-blur-sm rounded-2xl card-shadow border-2 border-gray-100">
-                <!-- Header -->
                 <div class="text-center space-y-4 pt-8 pb-8 px-6">
-                    <!-- Logo Icon -->
                     <div class="mx-auto w-24 h-24 bg-gradient-to-br from-indigo-500 via-indigo-600 to-purple-600 rounded-3xl flex items-center justify-center shadow-2xl relative overflow-hidden animate-rotate">
                         <div class="absolute inset-0 bg-gradient-to-tr from-indigo-500/20 to-purple-500/20 animate-pulse-custom"></div>
                         <svg class="w-12 h-12 text-white relative z-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -112,7 +113,6 @@
                         </svg>
                     </div>
                     
-                    <!-- Title -->
                     <div>
                         <h1 class="text-4xl font-bold bg-gradient-to-r from-indigo-600 via-indigo-700 to-purple-600 bg-clip-text text-transparent mb-2">
                             Your Cashier
@@ -121,17 +121,16 @@
                     </div>
                 </div>
 
-                <!-- Content -->
                 <div class="px-6 pb-8 space-y-6">
                     <!-- Role Selection -->
                     <div class="space-y-3">
                         <label class="text-sm font-semibold text-gray-900">Select Your Role</label>
                         <div class="grid grid-cols-2 gap-4">
-                            <!-- Owner Button -->
                             <button 
                                 id="ownerBtn" 
                                 class="role-btn-active h-auto py-5 flex flex-col items-center gap-2 rounded-xl font-bold text-base transition-all duration-300"
                                 onclick="selectRole('owner')"
+                                type="button"
                             >
                                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
@@ -139,11 +138,11 @@
                                 <span>Owner</span>
                             </button>
                             
-                            <!-- Staff Button -->
                             <button 
                                 id="staffBtn" 
                                 class="role-btn-inactive h-auto py-5 flex flex-col items-center gap-2 rounded-xl font-bold text-base transition-all duration-300"
                                 onclick="selectRole('staff')"
+                                type="button"
                             >
                                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
@@ -153,13 +152,14 @@
                         </div>
                     </div>
 
-                    <!-- Tabs -->
+                    <!-- Login Tabs -->
                     <div>
                         <div class="bg-gray-100 p-1 rounded-lg grid grid-cols-2 gap-1 mb-4">
                             <button 
                                 id="accountTab" 
                                 class="tab-active py-2 rounded-md font-medium text-sm flex items-center justify-center gap-2 transition-all"
                                 onclick="switchTab('account')"
+                                type="button"
                             >
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
@@ -170,6 +170,7 @@
                                 id="gmailTab" 
                                 class="tab-inactive py-2 rounded-md font-medium text-sm flex items-center justify-center gap-2 transition-all"
                                 onclick="switchTab('gmail')"
+                                type="button"
                             >
                                 <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
                                     <path d="M24 5.457v13.909c0 .904-.732 1.636-1.636 1.636h-3.819V11.73L12 16.64l-6.545-4.91v9.273H1.636A1.636 1.636 0 0 1 0 19.366V5.457c0-2.023 2.309-3.178 3.927-1.964L5.455 4.64 12 9.548l6.545-4.91 1.528-1.145C21.69 2.28 24 3.434 24 5.457z"/>
@@ -178,10 +179,9 @@
                             </button>
                         </div>
 
-                        <!-- Account Tab Content -->
+                        <!-- Account Tab -->
                         <div id="accountContent" class="space-y-4">
                             <form onsubmit="handleLogin(event)" class="space-y-4">
-                                <!-- Username -->
                                 <div class="space-y-2">
                                     <label for="username" class="block text-sm font-medium text-gray-900">Username</label>
                                     <div class="relative">
@@ -198,7 +198,6 @@
                                     <p id="usernameError" class="text-sm text-red-600 hidden"></p>
                                 </div>
 
-                                <!-- Password -->
                                 <div class="space-y-2">
                                     <div class="flex items-center justify-between">
                                         <label for="password" class="block text-sm font-medium text-gray-900">Password</label>
@@ -230,7 +229,6 @@
                                     <p id="passwordError" class="text-sm text-red-600 hidden"></p>
                                 </div>
 
-                                <!-- Remember Me -->
                                 <div class="flex items-center space-x-2">
                                     <input 
                                         type="checkbox" 
@@ -242,7 +240,6 @@
                                     </label>
                                 </div>
 
-                                <!-- Submit Button -->
                                 <button 
                                     type="submit" 
                                     id="loginBtn"
@@ -256,7 +253,7 @@
                             </form>
                         </div>
 
-                        <!-- Gmail Tab Content -->
+                        <!-- Gmail Tab -->
                         <div id="gmailContent" class="space-y-4 hidden">
                             <div class="text-center space-y-2 py-4">
                                 <div class="w-16 h-16 mx-auto bg-gradient-to-br from-red-500 to-pink-500 rounded-full flex items-center justify-center">
@@ -265,19 +262,23 @@
                                     </svg>
                                 </div>
                                 <p class="text-sm text-gray-600">
-                                    Sign in securely with your Gmail account
+                                    Sign in securely with your Google account
                                 </p>
                             </div>
 
                             <button 
-                                onclick="handleGmailLogin()"
-                                id="gmailLoginBtn"
+                                onclick="handleGoogleLogin()"
+                                id="googleLoginBtn"
+                                type="button"
                                 class="w-full h-12 text-base font-semibold border-2 border-gray-200 hover:border-indigo-500 bg-white rounded-lg shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2"
                             >
-                                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                                    <path d="M24 5.457v13.909c0 .904-.732 1.636-1.636 1.636h-3.819V11.73L12 16.64l-6.545-4.91v9.273H1.636A1.636 1.636 0 0 1 0 19.366V5.457c0-2.023 2.309-3.178 3.927-1.964L5.455 4.64 12 9.548l6.545-4.91 1.528-1.145C21.69 2.28 24 3.434 24 5.457z"/>
+                                <svg class="w-5 h-5" viewBox="0 0 24 24">
+                                    <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                                    <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                                    <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                                    <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
                                 </svg>
-                                <span id="gmailBtnText">Continue with Gmail</span>
+                                <span id="googleBtnText">Continue with Google</span>
                             </button>
 
                             <div class="bg-gray-50 rounded-lg p-4 space-y-2">
@@ -294,28 +295,34 @@
                 </div>
             </div>
 
-            <!-- Footer -->
             <p class="text-center text-sm text-gray-600 mt-6">
                 By signing in, you agree to our 
-                <button class="text-indigo-600 hover:underline">Terms of Service</button>
+                <button class="text-indigo-600 hover:underline" type="button">Terms of Service</button>
                 and 
-                <button class="text-indigo-600 hover:underline">Privacy Policy</button>
+                <button class="text-indigo-600 hover:underline" type="button">Privacy Policy</button>
             </p>
         </div>
     </div>
 
     <script>
+        // Firebase Configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyCYYvekxHtOuCzwJ6TYcjBuodoJJ09YW3E",
+            authDomain: "simnihbos.firebaseapp.com",
+            databaseURL: "https://simnihbos-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "simnihbos",
+            storageBucket: "simnihbos.firebasestorage.app",
+            messagingSenderId: "637893179915",
+            appId: "1:637893179915:web:4c8b94c41eb8e789e8650e",
+            measurementId: "G-B9PZVLVRLF"
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const database = firebase.database();
+
         let selectedRole = 'owner';
         let showPassword = false;
-
-        // Valid users database
-        const validUsers = {
-            'kelompok1': { password: 'kelompok1josjis', role: 'owner', name: 'Owner' },
-            'mankeub': { password: 'keuangan123', role: 'staff', name: 'MAN KEU B 23' },
-            'admin': { password: 'admin123', role: 'owner', name: 'Admin' },
-            'kasir1': { password: 'kasir123', role: 'staff', name: 'Kasir 1' },
-            'kasir2': { password: 'kasir456', role: 'staff', name: 'Kasir 2' }
-        };
 
         function selectRole(role) {
             selectedRole = role;
@@ -383,11 +390,9 @@
             const loginBtn = document.getElementById('loginBtn');
             const loginBtnText = document.getElementById('loginBtnText');
 
-            // Reset errors
             usernameError.classList.add('hidden');
             passwordError.classList.add('hidden');
 
-            // Validation
             if (!username) {
                 usernameError.textContent = 'Username is required';
                 usernameError.classList.remove('hidden');
@@ -400,69 +405,84 @@
                 return;
             }
 
-            // Check if user exists
-            const user = validUsers[username];
-            
-            if (!user) {
-                usernameError.textContent = 'Username not found';
-                usernameError.classList.remove('hidden');
-                return;
-            }
-
-            // Check password
-            if (user.password !== password) {
-                passwordError.textContent = 'Incorrect password';
-                passwordError.classList.remove('hidden');
-                return;
-            }
-
-            // Check role match
-            if (user.role !== selectedRole) {
-                alert(`This account is registered as ${user.role.toUpperCase()}. Please select the correct role.`);
-                return;
-            }
-
-            // Show loading
             loginBtn.disabled = true;
-            loginBtnText.innerHTML = '<svg class="animate-spin h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>Signing in...';
+            loginBtnText.innerHTML = '<svg class="animate-spin h-5 w-5 mr-2 inline" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>Signing in...';
 
-            // Store in localStorage and redirect
-            setTimeout(() => {
-                localStorage.setItem('isAuthenticated', 'true');
-                localStorage.setItem('userRole', user.role);
-                localStorage.setItem('username', user.name);
-                
-                console.log('Login successful! Redirecting...');
-                
-                // Force redirect
-                window.location.replace('dashboard-owner.html');
-                
-            }, 800);
+            // Check user in Firebase
+            database.ref('users/' + username).once('value')
+                .then((snapshot) => {
+                    if (snapshot.exists()) {
+                        const user = snapshot.val();
+                        
+                        if (user.password === password && user.role === selectedRole) {
+                            localStorage.setItem('isAuthenticated', 'true');
+                            localStorage.setItem('userRole', user.role);
+                            localStorage.setItem('username', user.name);
+                            
+                            window.location.replace('dashboard.html');
+                        } else if (user.password !== password) {
+                            passwordError.textContent = 'Incorrect password';
+                            passwordError.classList.remove('hidden');
+                            loginBtn.disabled = false;
+                            loginBtnText.textContent = `Sign In as ${selectedRole === 'owner' ? 'Owner' : 'Staff'}`;
+                        } else {
+                            alert(`This account is registered as ${user.role.toUpperCase()}. Please select the correct role.`);
+                            loginBtn.disabled = false;
+                            loginBtnText.textContent = `Sign In as ${selectedRole === 'owner' ? 'Owner' : 'Staff'}`;
+                        }
+                    } else {
+                        usernameError.textContent = 'Username not found';
+                        usernameError.classList.remove('hidden');
+                        loginBtn.disabled = false;
+                        loginBtnText.textContent = `Sign In as ${selectedRole === 'owner' ? 'Owner' : 'Staff'}`;
+                    }
+                })
+                .catch((error) => {
+                    alert('Error: ' + error.message);
+                    loginBtn.disabled = false;
+                    loginBtnText.textContent = `Sign In as ${selectedRole === 'owner' ? 'Owner' : 'Staff'}`;
+                });
         }
 
-        function handleGmailLogin() {
-            const gmailBtnText = document.getElementById('gmailBtnText');
-            const gmailLoginBtn = document.getElementById('gmailLoginBtn');
+        function handleGoogleLogin() {
+            const googleBtn = document.getElementById('googleLoginBtn');
+            const googleBtnText = document.getElementById('googleBtnText');
             
-            gmailLoginBtn.disabled = true;
-            gmailBtnText.textContent = 'Connecting...';
+            googleBtn.disabled = true;
+            googleBtnText.textContent = 'Connecting to Google...';
+
+            const provider = new firebase.auth.GoogleAuthProvider();
             
-            // Simulate Gmail OAuth (in production, use real OAuth)
-            setTimeout(() => {
-                const demoEmail = `user_${Date.now()}@gmail.com`;
-                
-                // Store in localStorage
-                localStorage.setItem('isAuthenticated', 'true');
-                localStorage.setItem('userRole', selectedRole);
-                localStorage.setItem('username', demoEmail.split('@')[0]);
-                localStorage.setItem('authMethod', 'gmail');
-                
-                console.log('Gmail login successful! Redirecting...');
-                
-                // Force redirect
-                window.location.replace('dashboard.html');
-                
-            }, 1000);
+            auth.signInWithPopup(provider)
+                .then((result) => {
+                    const user = result.user;
+                    
+                    // Save Google user to Firebase database
+                    const googleUser = {
+                        username: user.email.split('@')[0],
+                        email: user.email,
+                        name: user.displayName,
+                        role: selectedRole,
+                        photoURL: user.photoURL,
+                        createdAt: new Date().toISOString(),
+                        loginMethod: 'google'
+                    };
+
+                    database.ref('users/' + googleUser.username).set(googleUser)
+                        .then(() => {
+                            localStorage.setItem('isAuthenticated', 'true');
+                            localStorage.setItem('userRole', selectedRole);
+                            localStorage.setItem('username', user.displayName);
+                            
+                            window.location.replace('dashboard-owner.html');
+                        });
+                })
+                .catch((error) => {
+                    console.error('Google Login Error:', error);
+                    alert('Google login failed: ' + error.message);
+                    googleBtn.disabled = false;
+                    googleBtnText.textContent = 'Continue with Google';
+                });
         }
     </script>
 </body>
