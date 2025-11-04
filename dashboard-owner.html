@@ -11,6 +11,9 @@
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
     
+    <!-- QRCode.js Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    
     <style>
         .sidebar {
             transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -92,11 +95,33 @@
             right: 20px;
             z-index: 100;
         }
+
+        /* QR Code Styling - KOTAK SEMPURNA & NO DOUBLE */
+        #qrcode {
+            width: 300px !important;
+            height: 300px !important;
+            margin: 0 auto !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+        }
+
+        #qrcode img {
+            display: block !important;
+            margin: 0 auto !important;
+            width: 300px !important;
+            height: 300px !important;
+            max-width: 300px !important;
+            max-height: 300px !important;
+        }
+
+        #qrcode canvas {
+            display: none !important;
+        }
     </style>
 </head>
 <body class="bg-gray-50">
-    <!-- Sync Indicator -->
-    <div class="sync-indicator" id="syncIndicator">
+    <div class="sync-indicator" id="syncIndicator" style="display: none;">
         <div class="bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg flex items-center gap-2">
             <svg class="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
@@ -131,14 +156,14 @@
         <nav class="p-4 space-y-2">
             <button onclick="showSection('transaction')" class="menu-item w-full flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-white/10 transition-all bg-white/20" id="menu-transaction" type="button">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
                 </svg>
                 <span class="font-medium">Transaksi</span>
             </button>
 
             <button onclick="showSection('report')" class="menu-item w-full flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-white/10 transition-all" id="menu-report" type="button">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
                 </svg>
                 <span class="font-medium">Laporan Keuangan</span>
             </button>
@@ -404,8 +429,26 @@
                     </div>
                 </div>
 
-                <div class="bg-white rounded-2xl shadow-sm p-6 mb-8 border border-gray-100">
-                    <h3 class="text-lg font-bold text-gray-800 mb-4">Grafik Penjualan 7 Hari Terakhir</h3>
+                <div id="chartSection" class="bg-white rounded-2xl shadow-sm p-6 mb-8 border border-gray-100">
+                    <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-6">
+                        <h3 class="text-lg font-bold text-gray-800">Grafik Penjualan</h3>
+                        <div class="flex flex-col md:flex-row gap-3 w-full md:w-auto">
+                            <div class="flex items-center gap-2">
+                                <label class="text-sm font-medium text-gray-700 whitespace-nowrap">Dari:</label>
+                                <input type="date" id="chartStartDate" class="px-3 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-indigo-500 text-sm">
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <label class="text-sm font-medium text-gray-700 whitespace-nowrap">Sampai:</label>
+                                <input type="date" id="chartEndDate" class="px-3 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-indigo-500 text-sm">
+                            </div>
+                            <button onclick="updateChartByDateRange()" type="button" class="btn-primary px-4 py-2 rounded-lg text-white text-sm font-medium hover:shadow-lg transition-all whitespace-nowrap">
+                                Terapkan
+                            </button>
+                            <button onclick="resetChartDateRange()" type="button" class="px-4 py-2 rounded-lg border-2 border-gray-200 text-gray-700 text-sm font-medium hover:bg-gray-50 transition-all whitespace-nowrap">
+                                Reset
+                            </button>
+                        </div>
+                    </div>
                     <canvas id="salesChart" height="80"></canvas>
                 </div>
 
@@ -494,14 +537,14 @@
                                     <input type="number" id="stockQuantity" min="1" required class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-indigo-500">
                                 </div>
 
-                                <div>
+                                <div id="costPriceField">
                                     <label class="block text-sm font-medium text-gray-700 mb-2">Harga Beli (Modal)</label>
-                                    <input type="number" id="stockCostPrice" min="0" required class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-indigo-500">
+                                    <input type="number" id="stockCostPrice" min="0" class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-indigo-500">
                                 </div>
 
                                 <div id="sellPriceField">
                                     <label class="block text-sm font-medium text-gray-700 mb-2">Harga Jual</label>
-                                    <input type="number" id="stockSellPrice" min="0" required class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-indigo-500">
+                                    <input type="number" id="stockSellPrice" min="0" class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-indigo-500">
                                 </div>
 
                                 <button type="submit" class="btn-primary w-full py-3 rounded-lg text-white font-semibold hover:shadow-lg transition-all">
@@ -540,10 +583,11 @@
                                             <th class="text-left py-3 px-4 text-sm font-semibold text-gray-700">Harga Beli</th>
                                             <th class="text-left py-3 px-4 text-sm font-semibold text-gray-700">Harga Jual</th>
                                             <th class="text-left py-3 px-4 text-sm font-semibold text-gray-700">Status</th>
+                                            <th class="text-left py-3 px-4 text-sm font-semibold text-gray-700" id="actionHeader">Aksi</th>
                                         </tr>
                                     </thead>
                                     <tbody id="stockList">
-                                        <tr><td colspan="6" class="text-center py-8 text-gray-400">Belum ada data stok</td></tr>
+                                        <tr><td colspan="7" class="text-center py-8 text-gray-400">Belum ada data stok</td></tr>
                                     </tbody>
                                 </table>
                             </div>
@@ -553,7 +597,45 @@
             </div>
 
             <div id="section-settings" class="fade-in hidden">
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div class="bg-white rounded-2xl shadow-sm p-6 border border-gray-100">
+                        <h3 class="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+                            <svg class="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"></path>
+                            </svg>
+                            Tambah Akun Baru
+                        </h3>
+                        <form onsubmit="addNewUser(event)" class="space-y-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Username</label>
+                                <input type="text" id="newUsername" required class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-indigo-500">
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Password</label>
+                                <input type="password" id="newUserPassword" required minlength="6" class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-indigo-500">
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Nama Lengkap</label>
+                                <input type="text" id="newUserFullName" required class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-indigo-500">
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Role</label>
+                                <select id="newUserRole" required class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-indigo-500">
+                                    <option value="">-- Pilih Role --</option>
+                                    <option value="owner">Owner (Full Access)</option>
+                                    <option value="staff">Staff (Limited Access)</option>
+                                </select>
+                            </div>
+
+                            <button type="submit" class="btn-primary w-full py-3 rounded-lg text-white font-semibold hover:shadow-lg transition-all">
+                                Tambah Akun
+                            </button>
+                        </form>
+                    </div>
+
                     <div class="bg-white rounded-2xl shadow-sm p-6 border border-gray-100">
                         <h3 class="text-lg font-bold text-gray-800 mb-4">Informasi Toko</h3>
                         <div class="space-y-4">
@@ -596,15 +678,35 @@
                         </div>
                     </div>
                 </div>
+
+                <div class="mt-6 bg-white rounded-2xl shadow-sm p-6 border border-gray-100">
+                    <h3 class="text-lg font-bold text-gray-800 mb-4">Daftar Akun Pengguna</h3>
+                    <div class="overflow-x-auto">
+                        <table class="w-full">
+                            <thead>
+                                <tr class="border-b-2 border-gray-100 bg-gray-50">
+                                    <th class="text-left py-3 px-4 text-sm font-semibold text-gray-700">Username</th>
+                                    <th class="text-left py-3 px-4 text-sm font-semibold text-gray-700">Nama Lengkap</th>
+                                    <th class="text-left py-3 px-4 text-sm font-semibold text-gray-700">Role</th>
+                                    <th class="text-left py-3 px-4 text-sm font-semibold text-gray-700">Dibuat</th>
+                                    <th class="text-left py-3 px-4 text-sm font-semibold text-gray-700">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody id="userList">
+                                <tr><td colspan="5" class="text-center py-8 text-gray-400">Memuat data...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
         </main>
     </div>
 
-    <!-- QRIS Payment Modal -->
+    <!-- QRIS Modal - QR CODE KOTAK SEMPURNA -->
     <div id="qrisModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 hidden" onclick="handleQrisBackdropClick(event)">
         <div class="bg-white rounded-2xl p-8 max-w-lg w-full mx-4" onclick="event.stopPropagation()">
             <div class="text-center space-y-4">
-                <div class="w-16 h-16 mx-auto bg-gradient-to-br from-red-500 to-red-600 rounded-full flex items-center justify-center">
+                <div class="w-16 h-16 mx-auto bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full flex items-center justify-center">
                     <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"></path>
                     </svg>
@@ -613,8 +715,8 @@
                 <h3 class="text-2xl font-bold text-gray-800">Pembayaran QRIS</h3>
                 <p class="text-sm text-gray-600">Scan QR Code untuk melakukan pembayaran</p>
 
-                <div class="bg-white rounded-xl p-2 border-2 border-gray-200 shadow-lg">
-                    <img src="https://placehold.co/600x900" alt="QRIS payment barcode for KURJD Transportasi with NMID ID102541527206 A01 featuring red geometric design GPN logo black QR code Indonesian flag colors text satu QRIS untuk semua website www.aspi-qris.id dicetak oleh 93600914 versi cetak V0.0.2025.06.30" class="max-w-full h-auto mx-auto rounded-lg">
+                <div class="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-xl p-6 border-2 border-indigo-200">
+                    <div id="qrcode" class="bg-white p-4 rounded-lg"></div>
                 </div>
 
                 <div class="bg-gray-50 rounded-lg p-4 space-y-2 text-left">
@@ -627,12 +729,8 @@
                         <span class="font-mono text-xs text-gray-800" id="qrisTransactionId">-</span>
                     </div>
                     <div class="flex justify-between text-sm">
-                        <span class="text-gray-600">NMID:</span>
-                        <span class="font-mono text-xs text-gray-800">ID102541527206</span>
-                    </div>
-                    <div class="flex justify-between text-sm">
                         <span class="text-gray-600">Merchant:</span>
-                        <span class="font-medium text-xs text-gray-800">KURJD, TRANSPORTASI</span>
+                        <span class="font-medium text-xs text-gray-800">Your Cashier</span>
                     </div>
                 </div>
 
@@ -657,6 +755,7 @@
         </div>
     </div>
 
+    <!-- Modal Struk -->
     <div id="receiptModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 hidden">
         <div class="bg-white rounded-2xl p-8 max-w-md w-full mx-4">
             <div class="print-receipt" id="receiptContent"></div>
@@ -671,8 +770,58 @@
         </div>
     </div>
 
+    <!-- Modal Edit Stok -->
+    <div id="editStockModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-2xl p-8 max-w-md w-full mx-4">
+            <h3 class="text-lg font-bold text-gray-800 mb-4">Edit Stok Barang</h3>
+            <form onsubmit="saveEditStock(event)" class="space-y-4">
+                <input type="hidden" id="editStockId">
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Nama Barang</label>
+                    <input type="text" id="editStockName" required class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-indigo-500">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Kategori</label>
+                    <select id="editStockCategory" required class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-indigo-500">
+                        <option value="">-- Pilih Kategori --</option>
+                        <option value="Makanan">Makanan</option>
+                        <option value="Minuman">Minuman</option>
+                        <option value="Elektronik">Elektronik</option>
+                        <option value="Pakaian">Pakaian</option>
+                        <option value="Lainnya">Lainnya</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Jumlah Stok</label>
+                    <input type="number" id="editStockQuantity" min="0" required class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-indigo-500">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Harga Beli (Modal)</label>
+                    <input type="number" id="editStockCostPrice" min="0" required class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-indigo-500">
+                </div>
+
+                <div id="editSellPriceField">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Harga Jual</label>
+                    <input type="number" id="editStockSellPrice" min="0" required class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-indigo-500">
+                </div>
+
+                <div class="flex gap-3">
+                    <button type="submit" class="btn-primary flex-1 py-3 rounded-lg text-white font-semibold hover:shadow-lg transition-all">
+                        Simpan Perubahan
+                    </button>
+                    <button type="button" onclick="closeEditStockModal()" class="flex-1 py-3 rounded-lg border-2 border-gray-200 text-gray-700 font-semibold hover:bg-gray-50 transition-all">
+                        Batal
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <script>
-        // Firebase Configuration
         const firebaseConfig = {
             apiKey: "AIzaSyCYYvekxHtOuCzwJ6TYcjBuodoJJ09YW3E",
             authDomain: "simnihbos.firebaseapp.com",
@@ -684,7 +833,6 @@
             measurementId: "G-B9PZVLVRLF"
         };
 
-        // Initialize Firebase
         firebase.initializeApp(firebaseConfig);
         const database = firebase.database();
 
@@ -695,6 +843,15 @@
         let currentTransaction = null;
         let stocks = [];
         let transactions = [];
+        let users = [];
+        let salesChart = null;
+        
+        // Variable untuk menyimpan informasi toko
+        let storeInfo = {
+            name: 'Your Cashier Store',
+            address: 'Jl. Contoh No. 123',
+            phone: '0812-3456-7890'
+        };
 
         function showSyncIndicator(show = true) {
             const indicator = document.getElementById('syncIndicator');
@@ -703,16 +860,12 @@
                 setTimeout(() => {
                     indicator.style.display = 'none';
                 }, 2000);
-            } else {
-                indicator.style.display = 'none';
             }
         }
 
-        // LOAD DATA FROM FIREBASE
         function loadDataFromFirebase() {
             showSyncIndicator();
             
-            // Load Stocks
             database.ref('stocks').on('value', (snapshot) => {
                 stocks = [];
                 if (snapshot.exists()) {
@@ -725,7 +878,6 @@
                 checkLowStock();
             });
 
-            // Load Transactions
             database.ref('transactions').on('value', (snapshot) => {
                 transactions = [];
                 if (snapshot.exists()) {
@@ -736,6 +888,118 @@
                 loadTransactions();
                 updateStats();
             });
+
+            database.ref('users').on('value', (snapshot) => {
+                users = [];
+                if (snapshot.exists()) {
+                    snapshot.forEach((childSnapshot) => {
+                        users.push(childSnapshot.val());
+                    });
+                }
+                loadUserList();
+            });
+            
+            // Load store info dari Firebase
+            database.ref('settings').on('value', (snapshot) => {
+                if (snapshot.exists()) {
+                    const settings = snapshot.val();
+                    storeInfo = {
+                        name: settings.storeName || 'Your Cashier Store',
+                        address: settings.storeAddress || 'Jl. Contoh No. 123',
+                        phone: settings.storePhone || '0812-3456-7890'
+                    };
+                    // Update form fields
+                    const storeNameField = document.getElementById('storeName');
+                    const storeAddressField = document.getElementById('storeAddress');
+                    const storePhoneField = document.getElementById('storePhone');
+                    
+                    if (storeNameField) storeNameField.value = storeInfo.name;
+                    if (storeAddressField) storeAddressField.value = storeInfo.address;
+                    if (storePhoneField) storePhoneField.value = storeInfo.phone;
+                }
+            });
+        }
+
+        function addNewUser(event) {
+            event.preventDefault();
+
+            const newUsername = document.getElementById('newUsername').value.trim();
+            const newPassword = document.getElementById('newUserPassword').value;
+            const fullName = document.getElementById('newUserFullName').value;
+            const role = document.getElementById('newUserRole').value;
+
+            const existingUser = users.find(u => u.username === newUsername);
+            if (existingUser) {
+                alert('Username sudah digunakan!');
+                return;
+            }
+
+            const newUser = {
+                username: newUsername,
+                password: newPassword,
+                name: fullName,
+                role: role,
+                createdAt: new Date().toISOString(),
+                createdBy: username
+            };
+
+            showSyncIndicator();
+
+            database.ref('users/' + newUsername).set(newUser)
+                .then(() => {
+                    event.target.reset();
+                    alert(`Akun berhasil dibuat!\n\nUsername: ${newUsername}\nPassword: ${newPassword}`);
+                })
+                .catch((error) => {
+                    alert('Error: ' + error.message);
+                });
+        }
+
+        function loadUserList() {
+            const userList = document.getElementById('userList');
+            if (!userList) return;
+
+            if (users.length === 0) {
+                userList.innerHTML = '<tr><td colspan="5" class="text-center py-8 text-gray-400">Belum ada akun</td></tr>';
+                return;
+            }
+
+            let html = '';
+            users.forEach(user => {
+                const roleBadge = user.role === 'owner' 
+                    ? '<span class="px-2 py-1 bg-indigo-100 text-indigo-800 rounded-full text-xs font-semibold">OWNER</span>'
+                    : '<span class="px-2 py-1 bg-gray-100 text-gray-800 rounded-full text-xs font-semibold">STAFF</span>';
+
+                html += `
+                    <tr class="border-b border-gray-100 hover:bg-gray-50">
+                        <td class="py-3 px-4 font-medium">${user.username}</td>
+                        <td class="py-3 px-4">${user.name}</td>
+                        <td class="py-3 px-4">${roleBadge}</td>
+                        <td class="py-3 px-4 text-sm text-gray-500">${formatDate(user.createdAt)}</td>
+                        <td class="py-3 px-4">
+                            <button onclick="deleteUser('${user.username}')" type="button" class="text-red-500 hover:text-red-700 text-sm font-medium">
+                                Hapus
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            });
+
+            userList.innerHTML = html;
+        }
+
+        function deleteUser(delUsername) {
+            if (delUsername === 'owner') {
+                alert('Akun owner tidak bisa dihapus!');
+                return;
+            }
+
+            if (!confirm(`Hapus akun ${delUsername}?`)) return;
+
+            showSyncIndicator();
+            database.ref('users/' + delUsername).remove()
+                .then(() => alert('Akun berhasil dihapus!'))
+                .catch((error) => alert('Error: ' + error.message));
         }
 
         function openSidebar() {
@@ -752,11 +1016,14 @@
             if (e.key === 'Escape') {
                 const qrisModal = document.getElementById('qrisModal');
                 const receiptModal = document.getElementById('receiptModal');
+                const editStockModal = document.getElementById('editStockModal');
                 
                 if (!qrisModal.classList.contains('hidden')) {
                     cancelQrisPayment();
                 } else if (!receiptModal.classList.contains('hidden')) {
                     closeReceiptModal();
+                } else if (!editStockModal.classList.contains('hidden')) {
+                    closeEditStockModal();
                 } else if (document.getElementById('sidebar').style.transform === 'translateX(0px)') {
                     closeSidebar();
                 }
@@ -770,7 +1037,7 @@
             }
             
             initializeApp();
-            loadDataFromFirebase(); // Load from Firebase
+            loadDataFromFirebase();
         });
 
         function initializeApp() {
@@ -779,19 +1046,42 @@
             document.getElementById('userRoleDisplay').textContent = userRole === 'owner' ? 'Owner - Full Access' : 'Staff - Limited Access';
 
             applyRoleRestrictions();
+            initializeChartDateInputs();
             showSection('transaction');
         }
 
         function applyRoleRestrictions() {
             if (userRole === 'staff') {
-                const reportMenu = document.getElementById('menu-report');
                 const settingsMenu = document.getElementById('menu-settings');
-                if (reportMenu) reportMenu.style.display = 'none';
                 if (settingsMenu) settingsMenu.style.display = 'none';
                 
                 const sellPriceField = document.getElementById('sellPriceField');
                 if (sellPriceField) sellPriceField.style.display = 'none';
+                
+                const costPriceField = document.getElementById('costPriceField');
+                if (costPriceField) costPriceField.style.display = 'none';
+                
+                const actionHeader = document.getElementById('actionHeader');
+                if (actionHeader) actionHeader.style.display = 'none';
+                
+                hideStaffRestrictedReportColumns();
             }
+        }
+        
+        function hideStaffRestrictedReportColumns() {
+            if (userRole !== 'staff') return;
+            
+            const revenueCard = document.querySelector('#analyticsRevenue')?.closest('.bg-white');
+            if (revenueCard) revenueCard.style.display = 'none';
+            
+            const profitCard = document.querySelector('#analyticsProfit')?.closest('.bg-white');
+            if (profitCard) profitCard.style.display = 'none';
+            
+            const avgCard = document.querySelector('#analyticsAverage')?.closest('.bg-white');
+            if (avgCard) avgCard.style.display = 'none';
+            
+            const chartSection = document.getElementById('chartSection');
+            if (chartSection) chartSection.style.display = 'none';
         }
 
         function showSection(section) {
@@ -819,6 +1109,12 @@
 
             document.getElementById('pageTitle').textContent = titles[section].title;
             document.getElementById('pageSubtitle').textContent = titles[section].subtitle;
+            
+            if (section === 'report' && userRole === 'staff') {
+                setTimeout(() => {
+                    hideStaffRestrictedReportColumns();
+                }, 100);
+            }
         }
 
         function selectPaymentMethod(method) {
@@ -853,19 +1149,16 @@
                 }
             });
 
-            const existingListener = select.onchange;
-            if (!existingListener) {
-                select.addEventListener('change', function() {
-                    const index = this.value;
-                    if (index !== '') {
-                        const stock = stocks[index];
-                        document.getElementById('productPrice').value = 'Rp ' + formatNumber(stock.sellPrice);
-                        document.getElementById('productQuantity').max = stock.quantity;
-                    } else {
-                        document.getElementById('productPrice').value = '';
-                    }
-                });
-            }
+            select.onchange = function() {
+                const index = this.value;
+                if (index !== '') {
+                    const stock = stocks[index];
+                    document.getElementById('productPrice').value = 'Rp ' + formatNumber(stock.sellPrice);
+                    document.getElementById('productQuantity').max = stock.quantity;
+                } else {
+                    document.getElementById('productPrice').value = '';
+                }
+            };
         }
 
         function addToCart() {
@@ -995,6 +1288,28 @@
         function showQrisModal(transaction) {
             document.getElementById('qrisTotal').textContent = 'Rp ' + formatNumber(transaction.total);
             document.getElementById('qrisTransactionId').textContent = transaction.id;
+            
+            const qrcodeContainer = document.getElementById('qrcode');
+            qrcodeContainer.innerHTML = '';
+            
+            const qrisData = `00020101021126660014ID.CO.QRIS.WWW0114${transaction.id}0215YourCashier520454995303360540${transaction.total}5802ID5913Your Cashier6015Jakarta62070503***6304`;
+            
+            new QRCode(qrcodeContainer, {
+                text: qrisData,
+                width: 300,
+                height: 300,
+                colorDark: "#000000",
+                colorLight: "#ffffff",
+                correctLevel: QRCode.CorrectLevel.H
+            });
+            
+            setTimeout(() => {
+                const canvas = qrcodeContainer.querySelector('canvas');
+                if (canvas) {
+                    canvas.remove();
+                }
+            }, 100);
+            
             document.getElementById('qrisModal').classList.remove('hidden');
         }
 
@@ -1019,7 +1334,6 @@
         function completeTransaction(transaction) {
             showSyncIndicator();
             
-            // Update stocks in Firebase
             transaction.items.forEach(item => {
                 const stockId = item.stockId;
                 const stock = stocks.find(s => s.id === stockId);
@@ -1029,7 +1343,6 @@
                 }
             });
 
-            // Save transaction to Firebase
             database.ref('transactions/' + transaction.id).set(transaction);
 
             generateReceipt(transaction);
@@ -1055,9 +1368,9 @@
 
             receiptContent.innerHTML = `
                 <div class="text-center mb-4">
-                    <h2 class="text-xl font-bold">Your Cashier</h2>
-                    <p class="text-sm text-gray-600">Jl. Contoh No. 123</p>
-                    <p class="text-sm text-gray-600">Telp: 0812-3456-7890</p>
+                    <h2 class="text-xl font-bold">${storeInfo.name}</h2>
+                    <p class="text-sm text-gray-600">${storeInfo.address}</p>
+                    <p class="text-sm text-gray-600">Telp: ${storeInfo.phone}</p>
                 </div>
                 <div class="border-t-2 border-dashed border-gray-300 my-4"></div>
                 <div class="mb-4">
@@ -1075,7 +1388,7 @@
                 </div>
                 <div class="text-center text-sm text-gray-600">
                     <p>Terima kasih atas kunjungan Anda!</p>
-                    <p>Barang yang sudah dibeli tidak dapat dikembalkan</p>
+                    <p>Barang yang sudah dibeli tidak dapat dikembalikan</p>
                 </div>
             `;
         }
@@ -1088,20 +1401,21 @@
             document.getElementById('receiptModal').classList.add('hidden');
         }
 
-        // SAVE STOCK TO FIREBASE
         function addStock(event) {
             event.preventDefault();
 
             const name = document.getElementById('stockName').value;
             const category = document.getElementById('stockCategory').value;
             const quantity = parseInt(document.getElementById('stockQuantity').value);
-            const costPrice = parseInt(document.getElementById('stockCostPrice').value);
             
-            let sellPrice;
+            let costPrice, sellPrice;
+            
             if (userRole === 'owner') {
-                sellPrice = parseInt(document.getElementById('stockSellPrice').value);
+                costPrice = parseInt(document.getElementById('stockCostPrice').value) || 0;
+                sellPrice = parseInt(document.getElementById('stockSellPrice').value) || 0;
             } else {
-                sellPrice = Math.round(costPrice * 1.3);
+                costPrice = 0;
+                sellPrice = 0;
             }
 
             const stock = {
@@ -1117,23 +1431,119 @@
 
             showSyncIndicator();
             
-            // SAVE TO FIREBASE
             database.ref('stocks/' + stock.id).set(stock)
                 .then(() => {
                     event.target.reset();
-                    alert('Stok berhasil ditambahkan dan disinkronkan ke cloud!');
+                    if (userRole === 'staff') {
+                        alert('Stok berhasil ditambahkan! Owner akan menentukan harga.');
+                    } else {
+                        alert('Stok berhasil ditambahkan!');
+                    }
                 })
                 .catch((error) => {
                     alert('Error: ' + error.message);
                 });
         }
 
+        function openEditStockModal(stock) {
+            document.getElementById('editStockId').value = stock.id;
+            document.getElementById('editStockName').value = stock.name;
+            document.getElementById('editStockCategory').value = stock.category;
+            document.getElementById('editStockQuantity').value = stock.quantity;
+            document.getElementById('editStockCostPrice').value = stock.costPrice;
+            document.getElementById('editStockSellPrice').value = stock.sellPrice;
+            
+            const sellPriceField = document.getElementById('editSellPriceField');
+            if (userRole === 'staff') {
+                sellPriceField.style.display = 'none';
+            } else {
+                sellPriceField.style.display = 'block';
+            }
+            
+            document.getElementById('editStockModal').classList.remove('hidden');
+        }
+
+        function closeEditStockModal() {
+            document.getElementById('editStockModal').classList.add('hidden');
+        }
+
+        function saveEditStock(event) {
+            event.preventDefault();
+            
+            const id = document.getElementById('editStockId').value;
+            const name = document.getElementById('editStockName').value;
+            const category = document.getElementById('editStockCategory').value;
+            const quantity = parseInt(document.getElementById('editStockQuantity').value);
+            const costPrice = parseInt(document.getElementById('editStockCostPrice').value);
+            
+            let sellPrice;
+            if (userRole === 'owner') {
+                sellPrice = parseInt(document.getElementById('editStockSellPrice').value);
+            } else {
+                sellPrice = Math.round(costPrice * 1.3);
+            }
+            
+            const originalStock = stocks.find(s => s.id === parseInt(id));
+            
+            const updatedStock = {
+                id: parseInt(id),
+                name,
+                category,
+                quantity,
+                costPrice,
+                sellPrice,
+                addedBy: originalStock ? originalStock.addedBy : username,
+                addedDate: originalStock ? originalStock.addedDate : new Date().toISOString(),
+                lastEditedBy: username,
+                lastEditedDate: new Date().toISOString()
+            };
+            
+            showSyncIndicator();
+            
+            database.ref('stocks/' + id).set(updatedStock)
+                .then(() => {
+                    closeEditStockModal();
+                    alert('Stok berhasil diupdate!');
+                })
+                .catch((error) => {
+                    alert('Error: ' + error.message);
+                });
+        }
+
+        function deleteStock(stockId) {
+    if (userRole !== 'owner') {
+        alert('Hanya owner yang bisa menghapus stok!');
+        return;
+    }
+
+    const stock = stocks.find(s => s.id === stockId);
+    if (!stock) {
+        alert('Stok tidak ditemukan!');
+        return;
+    }
+
+    if (!confirm(`Hapus stok "${stock.name}"? Tindakan ini tidak dapat dibatalkan!`)) {
+        return;
+    }
+
+    showSyncIndicator();
+    
+    database.ref('stocks/' + stockId).remove()
+        .then(() => {
+            alert('Stok berhasil dihapus!');
+            // Data akan otomatis terupdate melalui listener Firebase
+        })
+        .catch((error) => {
+            alert('Error: ' + error.message);
+        });
+}
+
         function loadStocks() {
             const stockList = document.getElementById('stockList');
             if (!stockList) return;
             
             if (stocks.length === 0) {
-                stockList.innerHTML = '<tr><td colspan="6" class="text-center py-8 text-gray-400">Belum ada data stok</td></tr>';
+                stockList.innerHTML = '<tr><td colspan="7" class="text-center py-8 text-gray-400">Belum ada data stok</td></tr>';
                 return;
             }
 
@@ -1141,6 +1551,23 @@
             stocks.forEach((stock) => {
                 const statusClass = stock.quantity < 10 ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800';
                 const statusText = stock.quantity < 10 ? 'Stok Menipis' : 'Stok Aman';
+                
+                let actionColumn = '';
+                if (userRole === 'owner') {
+                    actionColumn = `
+                        <td class="py-3 px-4">
+    <button onclick='openEditStockModal(${JSON.stringify(stock).replace(/'/g, "\\'")})' type="button" class="text-indigo-600 hover:text-indigo-800 text-sm font-medium mr-2">
+        Edit
+    </button>
+    <button onclick='deleteStock(${stock.id})' type="button" class="text-red-500 hover:text-red-700 text-sm font-medium">
+        <svg class="w-4 h-4 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+        </svg>
+        Hapus
+    </button>
+</td>
+                    `;
+                }
 
                 html += `
                     <tr class="border-b border-gray-100 hover:bg-gray-50 stock-row" data-name="${stock.name.toLowerCase()}" data-category="${stock.category.toLowerCase()}">
@@ -1154,6 +1581,7 @@
                                 ${statusText}
                             </span>
                         </td>
+                        ${actionColumn}
                     </tr>
                 `;
             });
@@ -1197,8 +1625,11 @@
             const tbody = document.getElementById('transactionHistory');
             if (!tbody) return;
             
+            const isStaff = userRole === 'staff';
+            const colspan = isStaff ? '6' : '7';
+            
             if (transactions.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="7" class="text-center py-8 text-gray-400">Belum ada transaksi</td></tr>';
+                tbody.innerHTML = `<tr><td colspan="${colspan}" class="text-center py-8 text-gray-400">Belum ada transaksi</td></tr>`;
                 return;
             }
 
@@ -1209,6 +1640,8 @@
                     ? '<span class="px-2 py-1 bg-purple-100 text-purple-800 rounded-full text-xs font-semibold">QRIS</span>'
                     : '<span class="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs font-semibold">CASH</span>';
                 
+                const profitColumn = isStaff ? '' : `<td class="py-3 px-4 font-semibold text-green-600">Rp ${formatNumber(transaction.profit)}</td>`;
+                
                 html += `
                     <tr class="border-b border-gray-100 hover:bg-gray-50">
                         <td class="py-3 px-4 font-mono text-sm">${transaction.id}</td>
@@ -1216,7 +1649,7 @@
                         <td class="py-3 px-4 text-sm">${transaction.items.length} item</td>
                         <td class="py-3 px-4">${paymentBadge}</td>
                         <td class="py-3 px-4 font-semibold">Rp ${formatNumber(transaction.total)}</td>
-                        <td class="py-3 px-4 font-semibold text-green-600">Rp ${formatNumber(transaction.profit)}</td>
+                        ${profitColumn}
                         <td class="py-3 px-4">
                             <button onclick='viewTransactionDetail(${JSON.stringify(transaction).replace(/'/g, "\\'")})'  type="button" class="text-indigo-600 hover:text-indigo-800 text-sm font-medium">
                                 Detail
@@ -1227,6 +1660,16 @@
             });
 
             tbody.innerHTML = html;
+            
+            if (isStaff) {
+                const table = tbody.closest('table');
+                if (table) {
+                    const headers = table.querySelectorAll('thead th');
+                    if (headers.length >= 6) {
+                        headers[5].style.display = 'none';
+                    }
+                }
+            }
         }
 
         function viewTransactionDetail(transaction) {
@@ -1236,75 +1679,34 @@
 
         function exportToCSV() {
             if (transactions.length === 0) {
-                alert('Tidak ada data untuk di-export!');
+                alert('Tidak ada data!');
                 return;
             }
 
-            let csv = 'ID Transaksi,Tanggal,Jumlah Item,Metode Pembayaran,Total,Keuntungan,Kasir\n';
-            
+            let csv = 'ID,Tanggal,Items,Metode,Total,Keuntungan,Kasir\n';
             transactions.forEach(t => {
-                const date = formatDate(t.date);
-                const method = t.paymentMethod || 'cash';
-                csv += `${t.id},"${date}",${t.items.length},${method.toUpperCase()},${t.total},${t.profit},${t.user}\n`;
+                csv += `${t.id},"${formatDate(t.date)}",${t.items.length},${(t.paymentMethod||'cash').toUpperCase()},${t.total},${t.profit},${t.user}\n`;
             });
 
-            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const blob = new Blob([csv], { type: 'text/csv' });
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `laporan-transaksi-${new Date().toISOString().split('T')[0]}.csv`;
+            a.download = `laporan-${new Date().toISOString().split('T')[0]}.csv`;
             a.click();
             window.URL.revokeObjectURL(url);
-            
-            alert('Data berhasil di-export ke CSV!');
         }
 
         function exportToExcel() {
             if (transactions.length === 0) {
-                alert('Tidak ada data untuk di-export!');
+                alert('Tidak ada data!');
                 return;
             }
 
-            let html = `
-                <html>
-                <head>
-                    <meta charset="UTF-8">
-                    <style>
-                        table { border-collapse: collapse; width: 100%; }
-                        th, td { border: 1px solid black; padding: 8px; text-align: left; }
-                        th { background-color: #f3f4f6; font-weight: bold; }
-                    </style>
-                </head>
-                <body>
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>ID Transaksi</th>
-                                <th>Tanggal</th>
-                                <th>Jumlah Item</th>
-                                <th>Metode</th>
-                                <th>Total</th>
-                                <th>Keuntungan</th>
-                                <th>Kasir</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-            `;
+            let html = '<html><head><meta charset="UTF-8"><style>table{border-collapse:collapse;width:100%}th,td{border:1px solid black;padding:8px}th{background:#f3f4f6;font-weight:bold}</style></head><body><table><thead><tr><th>ID</th><th>Tanggal</th><th>Items</th><th>Metode</th><th>Total</th><th>Keuntungan</th><th>Kasir</th></tr></thead><tbody>';
             
             transactions.forEach(t => {
-                const date = formatDate(t.date);
-                const method = t.paymentMethod || 'cash';
-                html += `
-                    <tr>
-                        <td>${t.id}</td>
-                        <td>${date}</td>
-                        <td>${t.items.length}</td>
-                        <td>${method.toUpperCase()}</td>
-                        <td>Rp ${formatNumber(t.total)}</td>
-                        <td>Rp ${formatNumber(t.profit)}</td>
-                        <td>${t.user}</td>
-                    </tr>
-                `;
+                html += `<tr><td>${t.id}</td><td>${formatDate(t.date)}</td><td>${t.items.length}</td><td>${(t.paymentMethod||'cash').toUpperCase()}</td><td>Rp ${formatNumber(t.total)}</td><td>Rp ${formatNumber(t.profit)}</td><td>${t.user}</td></tr>`;
             });
             
             html += '</tbody></table></body></html>';
@@ -1313,11 +1715,9 @@
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `laporan-transaksi-${new Date().toISOString().split('T')[0]}.xls`;
+            a.download = `laporan-${new Date().toISOString().split('T')[0]}.xls`;
             a.click();
             window.URL.revokeObjectURL(url);
-            
-            alert('Data berhasil di-export ke Excel!');
         }
 
         function updateStats() {
@@ -1353,62 +1753,70 @@
             if (qrisEl) qrisEl.textContent = 'Rp ' + formatNumber(totalQris);
             if (avgEl) avgEl.textContent = 'Rp ' + formatNumber(Math.round(avgTransaction));
 
-            updateSalesChart();
+            if (userRole !== 'staff') {
+                updateSalesChart();
+            }
         }
 
-        let salesChart = null;
-
-        function updateSalesChart() {
+        function updateSalesChart(startDate = null, endDate = null) {
+            if (userRole === 'staff') return;
+            
             const ctx = document.getElementById('salesChart');
             if (!ctx) return;
 
-            const last7Days = [];
+            if (!startDate || !endDate) {
+                endDate = new Date();
+                startDate = new Date();
+                startDate.setDate(startDate.getDate() - 6);
+            }
+
+            const labels = [];
             const salesData = [];
             const profitData = [];
 
-            for (let i = 6; i >= 0; i--) {
-                const date = new Date();
-                date.setDate(date.getDate() - i);
-                last7Days.push(date.toLocaleDateString('id-ID', { month: 'short', day: 'numeric' }));
+            const daysDiff = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24));
+
+            for (let i = 0; i <= daysDiff; i++) {
+                const date = new Date(startDate);
+                date.setDate(date.getDate() + i);
+                labels.push(date.toLocaleDateString('id-ID', { month: 'short', day: 'numeric' }));
 
                 const dayTransactions = transactions.filter(t => {
                     const tDate = new Date(t.date);
                     return tDate.toDateString() === date.toDateString();
                 });
 
-                const daySales = dayTransactions.reduce((sum, t) => sum + t.total, 0);
-                const dayProfit = dayTransactions.reduce((sum, t) => sum + t.profit, 0);
-
-                salesData.push(daySales);
-                profitData.push(dayProfit);
+                salesData.push(dayTransactions.reduce((sum, t) => sum + t.total, 0));
+                profitData.push(dayTransactions.reduce((sum, t) => sum + t.profit, 0));
             }
 
-            if (salesChart) {
-                salesChart.destroy();
+            if (salesChart) salesChart.destroy();
+
+            const datasets = [{
+                label: 'Penjualan',
+                data: salesData,
+                borderColor: 'rgb(99, 102, 241)',
+                backgroundColor: 'rgba(99, 102, 241, 0.1)',
+                tension: 0.4,
+                fill: true
+            }];
+
+            if (userRole !== 'staff') {
+                datasets.push({
+                    label: 'Keuntungan',
+                    data: profitData,
+                    borderColor: 'rgb(34, 197, 94)',
+                    backgroundColor: 'rgba(34, 197, 94, 0.1)',
+                    tension: 0.4,
+                    fill: true
+                });
             }
 
             salesChart = new Chart(ctx, {
                 type: 'line',
                 data: {
-                    labels: last7Days,
-                    datasets: [
-                        {
-                            label: 'Penjualan',
-                            data: salesData,
-                            borderColor: 'rgb(99, 102, 241)',
-                            backgroundColor: 'rgba(99, 102, 241, 0.1)',
-                            tension: 0.4,
-                            fill: true
-                        },
-                        {
-                            label: 'Keuntungan',
-                            data: profitData,
-                            borderColor: 'rgb(34, 197, 94)',
-                            backgroundColor: 'rgba(34, 197, 94, 0.1)',
-                            tension: 0.4,
-                            fill: true
-                        }
-                    ]
+                    labels: labels,
+                    datasets: datasets
                 },
                 options: {
                     responsive: true,
@@ -1437,6 +1845,59 @@
             });
         }
 
+        function updateChartByDateRange() {
+            const startDateInput = document.getElementById('chartStartDate');
+            const endDateInput = document.getElementById('chartEndDate');
+
+            if (!startDateInput || !endDateInput) return;
+
+            if (!startDateInput.value || !endDateInput.value) {
+                alert('Pilih tanggal mulai dan tanggal akhir!');
+                return;
+            }
+
+            const startDate = new Date(startDateInput.value);
+            const endDate = new Date(endDateInput.value);
+
+            if (startDate > endDate) {
+                alert('Tanggal mulai tidak boleh lebih besar dari tanggal akhir!');
+                return;
+            }
+
+            const daysDiff = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24));
+            
+            if (daysDiff > 365) {
+                alert('Maksimal range tanggal adalah 365 hari!');
+                return;
+            }
+
+            updateSalesChart(startDate, endDate);
+        }
+
+        function resetChartDateRange() {
+            const startDateInput = document.getElementById('chartStartDate');
+            const endDateInput = document.getElementById('chartEndDate');
+            
+            if (startDateInput) startDateInput.value = '';
+            if (endDateInput) endDateInput.value = '';
+
+            updateSalesChart();
+        }
+
+        function initializeChartDateInputs() {
+            if (userRole === 'staff') return;
+            
+            const today = new Date();
+            const sevenDaysAgo = new Date();
+            sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6);
+
+            const chartEndDate = document.getElementById('chartEndDate');
+            const chartStartDate = document.getElementById('chartStartDate');
+
+            if (chartEndDate) chartEndDate.value = today.toISOString().split('T')[0];
+            if (chartStartDate) chartStartDate.value = sevenDaysAgo.toISOString().split('T')[0];
+        }
+
         function filterTransactions(period) {
             alert('Filter: ' + period);
         }
@@ -1451,12 +1912,8 @@
             showSyncIndicator();
             
             database.ref('settings').set(settings)
-                .then(() => {
-                    alert('Pengaturan berhasil disimpan dan disinkronkan!');
-                })
-                .catch((error) => {
-                    alert('Error: ' + error.message);
-                });
+                .then(() => alert('Pengaturan berhasil disimpan!'))
+                .catch((error) => alert('Error: ' + error.message));
         }
 
         function changePassword() {
@@ -1469,7 +1926,7 @@
                 return;
             }
             if (newPassword !== confirmPassword) {
-                alert('Password baru tidak cocok!');
+                alert('Password tidak cocok!');
                 return;
             }
             if (newPassword.length < 6) {
@@ -1485,8 +1942,10 @@
         }
 
         function logout() {
-            if (confirm('Apakah Anda yakin ingin logout?')) {
+            if (confirm('Yakin logout?')) {
                 localStorage.removeItem('isAuthenticated');
+                localStorage.removeItem('userRole');
+                localStorage.removeItem('username');
                 window.location.href = 'index.html';
             }
         }
